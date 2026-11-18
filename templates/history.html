@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}History · VextrainInvestment{% endblock %}
+{% block content %}
+<h1>Activity</h1>
+{% if page %}
+<div class="table-wrap"><table>
+  <tr><th>When</th><th>Type</th><th>Coin</th><th class="n">Quantity</th><th class="n">Price</th><th class="n">Value</th><th>Note</th></tr>
+  {% for t in page %}
+  <tr><td>{{ t.created_at|date:"M d, H:i" }}</td><td>{{ t.label }}</td><td>{{ t.coin.symbol|default:"" }}</td>
+    <td class="n">{% if t.coin and t.quantity %}{{ t.quantity|qty }}{% endif %}</td><td class="n">{% if t.coin and t.quantity %}{{ t.price|price }}{% endif %}</td>
+    <td class="n">{% if t.coin and t.quantity %}{{ t.value_usd|money }}{% endif %}</td><td class="muted">{{ t.note }}</td></tr>
+  {% endfor %}
+</table></div>
+<p>{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">Newer</a>{% endif %}
+   {% if page.has_next %} <a href="?page={{ page.next_page_number }}">Older</a>{% endif %}</p>
+{% else %}
+<p class="muted">No transactions yet. <a href="{% url 'market' %}">Make your first trade</a>.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,132 @@
+{% load vex %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}VextrainInvestment{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0E1320;--s1:#151C2C;--s2:#1B2438;--line:#26304A;--tx:#E7ECF5;--mu:#8C97B2;--ac:#3D7BFF;--gain:#2EC27E;--loss:#F0616D;--warn:#F3BA2F}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 'IBM Plex Sans',system-ui,sans-serif;font-variant-numeric:tabular-nums}
+a{color:#7FA6FF;text-decoration:none}a:hover{text-decoration:underline}
+h1{font-size:26px;line-height:1.2;margin:22px 0 14px}
+h2{font-size:18px;margin:30px 0 12px}
+p{margin:0 0 12px}
+.mu,.muted{color:var(--mu)}.sm{font-size:13px}.r{text-align:right}
+.gain{color:var(--gain)}.loss{color:var(--loss)}.flat{color:var(--mu)}
+.mono{font-family:'IBM Plex Mono',monospace;word-break:break-all}
+/* shell */
+.app{display:flex;min-height:100vh}
+.side{width:236px;flex:none;background:var(--s1);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh}
+.logo{font-weight:600;font-size:19px;color:var(--tx);padding:0 12px 20px}.logo b{color:var(--ac)}.logo:hover{text-decoration:none}
+.side nav{display:flex;flex-direction:column;gap:2px}
+.side nav a,.side nav button{display:block;width:100%;text-align:left;color:var(--mu);padding:10px 12px;border-radius:10px;font:inherit;background:none;border:0;cursor:pointer}
+.side nav a:hover,.side nav button:hover{background:var(--s2);color:var(--tx);text-decoration:none}
+.side nav a.on{background:var(--s2);color:var(--tx);box-shadow:inset 3px 0 0 var(--ac)}
+.side nav form{margin:0}
+.who{margin-top:auto;padding:14px 12px 0;border-top:1px solid var(--line);font-size:13px;color:var(--mu)}
+.main{flex:1;min-width:0}
+.sim{background:#2A2410;color:#F3D88A;padding:7px 16px;font-size:13px;text-align:center;border-bottom:1px solid #4A3F17}
+.content{max-width:980px;margin:0 auto;padding:6px 24px 56px}
+@media(max-width:820px){.app{flex-direction:column}.side{width:auto;height:auto;position:static;flex-direction:row;align-items:center;flex-wrap:wrap;padding:10px 14px}.logo{padding:0 12px 0 0}.side nav{flex-direction:row;overflow-x:auto;max-width:100%}.side nav a,.side nav button{white-space:nowrap;width:auto}.who{display:none}.content{padding:6px 16px 48px}}
+/* controls */
+.btn{display:inline-block;background:var(--ac);color:#fff;border:1px solid var(--ac);border-radius:10px;padding:10px 18px;font:inherit;font-weight:500;cursor:pointer}
+.btn:hover{text-decoration:none;filter:brightness(1.1)}
+.btn.alt{background:transparent;color:var(--tx);border-color:var(--line)}
+.btn.alt:hover{background:var(--s2)}
+.btn.buy{background:var(--gain);border-color:var(--gain)}.btn.sellb{background:var(--loss);border-color:var(--loss)}
+.btn.danger{background:var(--loss);border-color:var(--loss)}
+.btn.sm{padding:6px 12px;font-size:14px}.btn.block{display:block;width:100%;text-align:center}
+.btn:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,button:focus-visible{outline:2px solid #8DB6FF;outline-offset:2px}
+label{display:block;font-weight:500;margin:14px 0 6px}
+input[type=text],input[type=password],input[type=email],input[type=number],select{width:100%;max-width:100%;padding:11px 12px;background:var(--s2);color:var(--tx);border:1px solid var(--line);border-radius:10px;font:inherit}
+.errorlist{color:var(--loss);list-style:none;padding:0;margin:4px 0}
+.helptext{font-size:13px;color:var(--mu)}
+.chips{display:flex;gap:8px;margin:8px 0}
+.chips button{background:var(--s2);color:var(--mu);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chips button:hover{color:var(--tx)}
+.tabs{display:inline-flex;background:var(--s2);border-radius:10px;padding:3px;gap:2px;margin-bottom:12px}
+.tabs button{background:none;border:0;color:var(--mu);padding:6px 14px;border-radius:8px;font:inherit;cursor:pointer}
+.tabs button.on{background:var(--bg);color:var(--tx)}
+.messages{list-style:none;padding:0;margin:14px 0 0}
+.messages li{padding:11px 14px;border-radius:10px;margin-bottom:8px;background:#162A4A;border:1px solid #23406E}
+.messages .error{background:#3A1A21;border-color:#6B2A35}.messages .success{background:#123225;border-color:#1F5A40}
+/* surfaces */
+.card,.panel{background:var(--s1);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+.panel{max-width:460px}
+.hero{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;background:linear-gradient(135deg,#1E2F5C,#151C2C 65%);border:1px solid var(--line);border-radius:20px;padding:28px;margin-bottom:16px}
+.hero .big,.big{font-size:38px;font-weight:600;line-height:1.1}
+.chip{display:inline-block;padding:2px 10px;border-radius:999px;font-size:13px;background:var(--s2)}
+.chip.gain{background:#123225}.chip.loss{background:#3A1A21}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--s2);color:var(--mu)}
+.badge.PENDING{background:#3A3010;color:var(--warn)}.badge.COMPLETED{background:#123225;color:var(--gain)}.badge.REJECTED{background:#3A1A21;color:var(--loss)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.strip{display:flex;flex-wrap:wrap;background:var(--s1);border:1px solid var(--line);border-radius:16px;margin-bottom:8px}
+.strip div{flex:1 1 170px;padding:16px 20px;border-right:1px solid var(--line)}
+.strip div:last-child{border-right:0}
+.strip .v{font-size:24px;font-weight:600}.strip .l{font-size:13px;color:var(--mu)}
+/* coin rows */
+.ci{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--c);color:#fff;font-size:10px;font-weight:700;text-shadow:0 1px 1px rgba(0,0,0,.35);flex:none}
+.nm{display:flex;align-items:center;gap:12px}
+.list{background:var(--s1);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.arow{display:grid;grid-template-columns:minmax(150px,1.5fr) 1fr 90px 110px 70px;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);color:var(--tx)}
+.arow:last-child{border-bottom:0}.arow:hover{background:var(--s2);text-decoration:none}
+.arow.head{color:var(--mu);font-size:13px;padding:10px 18px}.arow.head:hover{background:none}
+@media(max-width:640px){.arow{grid-template-columns:1fr 1fr 70px}.hide-s{display:none}}
+.alloc{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--s2);margin:12px 0 10px}
+.alloc span{display:block;height:100%}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mu)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+/* tables */
+table{width:100%;border-collapse:collapse;background:var(--s1);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+th,td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:500;font-size:13px;color:var(--mu)}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right}
+.table-wrap{overflow-x:auto}
+.est{background:var(--s2);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:14px}
+.est div{display:flex;justify-content:space-between;gap:12px;padding:2px 0}
+footer{margin:0 auto;max-width:980px;padding:0 24px 32px;font-size:13px;color:var(--mu)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+{% with n=request.resolver_match.url_name %}
+<div class="app">
+<aside class="side">
+  <a class="logo" href="{% url 'home' %}">Vextrain<b>Investment</b></a>
+  <nav>
+    {% if user.is_authenticated %}
+      <a href="{% url 'dashboard' %}" class="{% if n == 'dashboard' %}on{% endif %}">Wallet</a>
+      <a href="{% url 'market' %}" class="{% if n == 'market' or n == 'coin' %}on{% endif %}">Market</a>
+      <a href="{% url 'convert' %}" class="{% if n == 'convert' %}on{% endif %}">Convert</a>
+      <a href="{% url 'withdraw' %}" class="{% if n == 'withdraw' %}on{% endif %}">Withdraw</a>
+      <a href="{% url 'history' %}" class="{% if n == 'history' %}on{% endif %}">Activity</a>
+      <a href="{% url 'plan' %}" class="{% if n == 'plan' %}on{% endif %}">Investment Plans</a>
+      {% if user.is_staff %}<a href="{% url 'manage_home' %}" class="{% if n|slice:':6' == 'manage' %}on{% endif %}">Admin panel</a>{% endif %}
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit">Log out</button></form>
+    {% else %}
+      <a href="{% url 'market' %}" class="{% if n == 'market' %}on{% endif %}">Market</a>
+      <a href="{% url 'login' %}" class="{% if n == 'login' %}on{% endif %}">Log in</a>
+      <a href="{% url 'signup' %}" class="{% if n == 'signup' %}on{% endif %}">Sign up</a>
+    {% endif %}
+  </nav>
+  {% if user.is_authenticated %}<div class="who">Signed in as<br><strong style="color:var(--tx)">{{ user.username }}</strong></div>{% endif %}
+</aside>
+<div class="main">
+  <main class="content">
+    {% if messages %}<ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>VextrainInvestment is a learning project. Prices come from CoinGecko</footer>
+</div>
+</div>
+{% endwith %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

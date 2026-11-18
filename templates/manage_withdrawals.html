@@ -1,0 +1,36 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}Withdrawals · Admin panel{% endblock %}
+{% block content %}
+<p class="mu" style="margin-top:18px"><a href="{% url 'manage_home' %}">Admin panel</a> / Withdrawals</p>
+<h1>Withdrawal requests</h1>
+<h2>Pending ({{ pending|length }})</h2>
+{% if pending %}
+<div class="table-wrap"><table>
+  <tr><th>User</th><th>Request</th><th>Destination</th><th>Decision</th></tr>
+  {% for w in pending %}
+  <tr>
+    <td><strong>{{ w.user.username }}</strong><div class="mu sm">{{ w.created_at|date:"M d, H:i" }}</div></td>
+    <td>{{ w.amount|qty }} {{ w.coin.symbol }}<div class="mu sm">{{ w.usd_value|money }} at request</div></td>
+    <td>{{ w.network_label }}<div class="mono sm mu">{{ w.address }}</div></td>
+    <td>
+      <form method="post" action="{% url 'manage_withdrawal_process' w.pk %}">{% csrf_token %}
+        <input type="text" name="note" placeholder="Note (optional)" aria-label="Note" style="margin-bottom:8px">
+        <button class="btn sm buy" type="submit" name="action" value="approve">Complete</button>
+        <button class="btn sm danger" type="submit" name="action" value="reject">Reject and refund</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}<p class="mu">Nothing waiting for a decision.</p>{% endif %}
+<h2>Recently processed</h2>
+<div class="table-wrap"><table>
+  <tr><th>User</th><th>Request</th><th>Network</th><th>Status</th><th>Processed</th></tr>
+  {% for w in done %}
+  <tr><td>{{ w.user.username }}</td><td>{{ w.amount|qty }} {{ w.coin.symbol }}</td><td>{{ w.network_label }}</td>
+    <td><span class="badge {{ w.status }}">{{ w.get_status_display }}</span></td>
+    <td class="mu sm">{{ w.processed_at|date:"M d, H:i" }} by {{ w.processed_by.username|default:"-" }}{% if w.admin_note %}<br>{{ w.admin_note }}{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="5" class="mu">No processed withdrawals yet.</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}Withdraw · VextrainInvestment{% endblock %}
+{% block content %}
+<h1>Withdraw</h1>
+<div class="card">
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <strong>{% if unlocked %}Withdrawals unlocked{% else %}Withdrawals unlock at {{ min_total|money }}{% endif %}</strong>
+    <span class="mu">Your total balance: <strong style="color:var(--tx)">{{ total|money }}</strong></span>
+  </div>
+  <div class="alloc"><span style="width:{{ progress|stringformat:'.1f' }}%;background:var(--ac)"></span></div>
+  {% if not unlocked %}<p class="mu sm" style="margin:0">Grow your balance to reach {{ min_total|money }}. You need {{ remaining|money }} more. All four coins count.</p>{% endif %}
+  <p class="mu sm" style="margin:8px 0 0">The coin you withdraw must also be worth at least {{ min_asset|money }} in your wallet.</p>
+</div>
+<div class="grid2">
+  <div class="card">
+    <p class="mu sm"></p>
+    <form method="post" id="wf" data-min="{{ min_asset }}" data-unlocked="{% if unlocked %}1{% else %}0{% endif %}">{% csrf_token %}
+      <label for="w-coin">Asset</label>
+      <select id="w-coin" name="coin">{% for sym, a in assets.items %}<option value="{{ sym }}">{{ a.name }} ({{ sym }})</option>{% endfor %}</select>
+      <div class="sm mu" style="margin-top:6px">Available: <strong id="w-bal" style="color:var(--tx)">0</strong></div>
+      <p id="w-lock" class="sm" style="color:var(--warn);margin:8px 0 0" hidden></p>
+
+      <label for="w-net">Blockchain network</label>
+      <select id="w-net" name="network"></select>
+      <div class="sm mu" style="margin-top:6px">Send only to an address on the same network. A wrong network would lose funds on a real chain.</div>
+
+      <label for="w-addr">Recipient wallet address</label>
+      <input id="w-addr" name="address" type="text" required autocomplete="off" spellcheck="false" placeholder="Paste the address here">
+
+      <label for="w-amt">Amount</label>
+      <input id="w-amt" name="amount" type="number" step="0.00000001" min="0.00000001" required placeholder="0.00">
+      <div class="chips" id="w-chips"><button type="button" data-p="0.25">25%</button><button type="button" data-p="0.5">50%</button><button type="button" data-p="0.75">75%</button><button type="button" data-p="1">Max</button></div>
+
+      <div class="est">
+        <div><span class="mu">Network</span><strong id="s-net">-</strong></div>
+        <div><span class="mu">Value</span><strong id="s-usd">$0.00</strong></div>
+        <div><span class="mu">Network fee</span><strong>None (simulated)</strong></div>
+      </div>
+      <button id="w-submit" class="btn block" type="submit"{% if not unlocked %} disabled style="opacity:.5;cursor:not-allowed"{% endif %}>Submit withdrawal</button>
+    </form>
+  </div>
+  <div class="card">
+    <strong>Before you withdraw</strong>
+    <p class="mu sm" style="margin-top:8px">Your whole balance is held in BTC, ETH, BNB and USDT, and your total balance is all four added together. Withdraw any of them here, or <a href="{% url 'convert' %}">convert</a> one into another first.</p>
+    <p class="mu sm" style="margin-bottom:0">Pending requests keep the coins out of your wallet until an admin acts. If a request is rejected, the coins return to your wallet.</p>
+  </div>
+</div>
+
+<h2>Your withdrawals</h2>
+{% if withdrawals %}
+<div class="table-wrap"><table>
+  <tr><th>Date</th><th>Asset</th><th class="n">Amount</th><th>Network</th><th>Address</th><th>Status</th></tr>
+  {% for w in withdrawals %}
+  <tr><td>{{ w.created_at|date:"M d, H:i" }}</td><td>{{ w.coin.symbol }}</td><td class="n">{{ w.amount|qty }}</td><td>{{ w.network_label }}</td>
+    <td class="mono sm">{{ w.address }}</td>
+    <td><span class="badge {{ w.status }}">{{ w.get_status_display }}</span>{% if w.admin_note %}<div class="mu sm">{{ w.admin_note }}</div>{% endif %}</td></tr>
+  {% endfor %}
+</table></div>
+{% else %}<p class="mu">No withdrawals yet.</p>{% endif %}
+{{ assets|json_script:"assets-data" }}
+{% endblock %}
+{% block scripts %}
+<script>
+const A = JSON.parse(document.getElementById('assets-data').textContent);
+const coin = document.getElementById('w-coin'), net = document.getElementById('w-net'), amt = document.getElementById('w-amt');
+const fmt = (n, dp) => n.toLocaleString(undefined, {maximumFractionDigits: dp});
+function sync() {
+  const a = A[coin.value];
+  net.innerHTML = a.networks.map(n => `<option value="${n[0]}">${n[1]}</option>`).join('');
+  document.getElementById('w-bal').textContent = fmt(a.balance, 8) + ' ' + coin.value;
+  const form = document.getElementById('wf'), min = +form.dataset.min, value = a.balance * a.price;
+  const note = document.getElementById('w-lock'), btn = document.getElementById('w-submit');
+  const assetOk = value >= min;
+  note.hidden = assetOk;
+  note.textContent = assetOk ? '' : `You hold $${fmt(value, 2)} of ${coin.value}. You need at least $${fmt(min, 2)} worth of it to withdraw it. Buy or convert more first.`;
+  const ok = assetOk && form.dataset.unlocked === '1';
+  btn.disabled = !ok; btn.style.opacity = ok ? '' : '.5'; btn.style.cursor = ok ? '' : 'not-allowed';
+  summary();
+}
+function summary() {
+  const a = A[coin.value];
+  document.getElementById('s-net').textContent = net.options[net.selectedIndex] ? net.options[net.selectedIndex].text : '-';
+  document.getElementById('s-usd').textContent = '$' + fmt((+amt.value || 0) * a.price, 2);
+}
+coin.onchange = sync; net.onchange = summary; amt.oninput = summary;
+document.querySelectorAll('#w-chips button').forEach(b => b.onclick = () => {
+  amt.value = (Math.floor(A[coin.value].balance * +b.dataset.p * 1e8) / 1e8).toString();
+  summary();
+});
+const q = new URLSearchParams(location.search).get('coin');
+if (q && A[q]) coin.value = q;
+sync();
+</script>
+{% endblock %}

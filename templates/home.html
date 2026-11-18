@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load vex %}
+{% block content %}
+<h1 style="font-size:32px;max-width:20ch">Practice crypto investing</h1>
+<p class="mu" style="max-width:60ch">Every new account gets a 20 USDT welcome bonus. Hold, buy and sell Bitcoin, Ethereum, BNB and USDT at real market prices. Gains and losses follow the actual market.</p>
+<p>
+  {% if user.is_authenticated %}<a class="btn" href="{% url 'dashboard' %}">Open your wallet</a>
+  {% else %}<a class="btn" href="{% url 'signup' %}">Create a free account</a> <a class="btn alt" href="{% url 'login' %}">Log in</a>{% endif %}
+</p>
+<p class="mu sm"><strong style="color:var(--tx)">{{ active_users }}</strong> active user{{ active_users|pluralize }} in the last {{ active_days }} days</p>
+<h2>Live market</h2>
+{% if coins %}
+<div class="list">
+  <div class="arow head"><span>Asset</span><span class="r">Price</span><span class="r hide-s">24h</span><span class="hide-s">7 days</span><span></span></div>
+  {% for c in coins %}
+  <div class="arow">
+    <span class="nm"><span class="ci" style="--c:{{ c.symbol|coin_color }}">{{ c.symbol }}</span><span><strong>{{ c.name }}</strong><br><span class="mu sm">{{ c.symbol }}</span></span></span>
+    <span class="r">{{ c.price_usd|price }}</span>
+    <span class="r hide-s {{ c.change_24h|tone }}">{{ c.change_24h|pct }}</span>
+    <span class="hide-s">{{ c|sparkline }}</span><span></span>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="mu">No coins yet. Run <code>python manage.py seed_coins</code> to add BTC, ETH, BNB and USDT.</p>
+{% endif %}
+{% endblock %}

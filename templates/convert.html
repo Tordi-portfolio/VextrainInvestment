@@ -1,0 +1,65 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}Convert · VextrainInvestment{% endblock %}
+{% block content %}
+<h1>Convert</h1>
+<div class="grid2">
+  <div class="card">
+    <form method="post" id="cf">{% csrf_token %}
+      <label for="c-from">From</label>
+      <select id="c-from" name="from_coin">{% for sym, a in assets.items %}<option value="{{ sym }}">{{ a.name }} ({{ sym }})</option>{% endfor %}</select>
+      <div class="sm mu" style="margin-top:6px">Available: <strong id="c-bal" style="color:var(--tx)">0</strong></div>
+
+      <div style="margin:14px 0 0"><button type="button" class="btn alt sm" id="c-swap">Swap coins</button></div>
+
+      <label for="c-to">To</label>
+      <select id="c-to" name="to_coin">{% for sym, a in assets.items %}<option value="{{ sym }}">{{ a.name }} ({{ sym }})</option>{% endfor %}</select>
+
+      <label for="c-amt">Amount to convert</label>
+      <input id="c-amt" name="amount" type="number" step="0.00000001" min="0.00000001" required placeholder="0.00">
+      <div class="chips" id="c-chips"><button type="button" data-p="0.25">25%</button><button type="button" data-p="0.5">50%</button><button type="button" data-p="0.75">75%</button><button type="button" data-p="1">Max</button></div>
+
+      <div class="est">
+        <div><span class="mu">Rate</span><strong id="c-rate">-</strong></div>
+        <div><span class="mu">You receive about</span><strong id="c-out">0</strong></div>
+        <div><span class="mu">Fee</span><strong>None (simulated)</strong></div>
+      </div>
+      <button class="btn block" type="submit">Convert</button>
+    </form>
+  </div>
+  <div class="card">
+    <strong>How converting works</strong>
+    <p class="mu sm" style="margin-top:8px">Swap any of BTC, ETH, BNB and USDT for another at the current market price. The value moves with the coins, so your profit or loss carries over.</p>
+    <p class="mu sm" style="margin-bottom:0">Only coins you hold can be converted. After converting, you can <a href="{% url 'withdraw' %}">withdraw</a> any of the four.</p>
+  </div>
+</div>
+{{ assets|json_script:"assets-data" }}
+{% endblock %}
+{% block scripts %}
+<script>
+const A = JSON.parse(document.getElementById('assets-data').textContent);
+const from = document.getElementById('c-from'), to = document.getElementById('c-to'), amt = document.getElementById('c-amt');
+const fmt = (n, dp) => n.toLocaleString(undefined, {maximumFractionDigits: dp});
+function other(changed, fixed) {
+  if (changed.value === fixed.value) fixed.value = Object.keys(A).find(s => s !== changed.value);
+}
+function update() {
+  const f = A[from.value], t = A[to.value];
+  document.getElementById('c-bal').textContent = fmt(f.balance, 8) + ' ' + from.value;
+  const rate = f.price / t.price;
+  document.getElementById('c-rate').textContent = '1 ' + from.value + ' = ' + fmt(rate, 8) + ' ' + to.value;
+  document.getElementById('c-out').textContent = fmt((+amt.value || 0) * rate, 8) + ' ' + to.value;
+}
+from.onchange = () => { other(from, to); update(); };
+to.onchange = () => { other(to, from); update(); };
+amt.oninput = update;
+document.getElementById('c-swap').onclick = () => { const x = from.value; from.value = to.value; to.value = x; update(); };
+document.querySelectorAll('#c-chips button').forEach(b => b.onclick = () => {
+  amt.value = (Math.floor(A[from.value].balance * +b.dataset.p * 1e8) / 1e8).toString(); update();
+});
+const q = new URLSearchParams(location.search).get('from');
+const held = Object.keys(A).find(s => A[s].balance > 0);
+from.value = (q && A[q]) ? q : (held || Object.keys(A)[0]);
+to.value = Object.keys(A).find(s => s !== from.value);
+update();
+</script>
+{% endblock %}

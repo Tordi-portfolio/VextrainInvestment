@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}{{ target.username }} history · Admin panel{% endblock %}
+{% block content %}
+<p class="mu" style="margin-top:18px"><a href="{% url 'manage_home' %}">Users</a> / <a href="{% url 'manage_user' target.pk %}">{{ target.username }}</a> / History</p>
+<h1>Transaction history: {{ target.username }}</h1>
+<p class="muted">Entries are created automatically whenever the account changes: trades, conversions, withdrawals, welcome bonus, and every admin balance update.</p>
+<div class="table-wrap"><table>
+  <tr><th>When</th><th>Type</th><th>Coin</th><th class="n">Quantity</th><th class="n">Value</th><th>Reason or note</th><th>By</th></tr>
+  {% for t in page %}
+  <tr><td>{{ t.created_at|date:"M d, Y H:i" }}</td><td>{{ t.label }}</td><td>{{ t.coin.symbol|default:"" }}</td>
+    <td class="n">{% if t.coin and t.quantity %}{{ t.quantity|qty }}{% endif %}</td>
+    <td class="n">{% if t.coin and t.quantity %}{{ t.value_usd|money }}{% endif %}</td>
+    <td class="muted">{{ t.note }}</td><td>{{ t.created_by.username|default:"User" }}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">No transactions yet.</td></tr>
+  {% endfor %}
+</table></div>
+<p>{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">Newer</a>{% endif %}
+   {% if page.has_next %} <a href="?page={{ page.next_page_number }}">Older</a>{% endif %}</p>
+{% endblock %}

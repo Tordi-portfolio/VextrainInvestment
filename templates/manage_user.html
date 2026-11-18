@@ -1,0 +1,50 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}{{ target.username }} · Admin panel{% endblock %}
+{% block content %}
+<p class="mu" style="margin-top:18px"><a href="{% url 'manage_home' %}">Users</a> / {{ target.username }}</p>
+<h1>{{ target.username }}</h1>
+<p class="muted">{{ target.email|default:"No email" }} · joined {{ target.date_joined|date:"M d, Y" }}</p>
+<div class="strip">
+  <div><div class="v">{{ p.total|money }}</div><div class="l">Total balance (all coins together)</div></div>
+  <div><div class="v {{ p.pl|tone }}">{{ p.pl|money }}</div><div class="l">Profit or loss</div></div>
+</div>
+<h2>Balances</h2>
+<div class="table-wrap"><table>
+  <tr><th>Coin</th><th class="n">Price</th><th class="n">Balance</th><th class="n">Value</th></tr>
+  {% for b in balances %}
+  <tr><td><strong>{{ b.coin.symbol }}</strong> <span class="muted">{{ b.coin.name }}</span></td><td class="n">{{ b.coin.price_usd|price }}</td>
+    <td class="n">{{ b.quantity|qty }}</td><td class="n">{{ b.value|money }}</td></tr>
+  {% endfor %}
+</table></div>
+<h2>Update a coin balance</h2>
+<div class="panel">
+<form method="post" action="{% url 'manage_adjust' target.pk %}">{% csrf_token %}
+  {% for f in form %}<label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{{ f.errors }}{% endfor %}
+  <p style="margin-top:16px"><button class="btn" type="submit">Save balance</button></p>
+</form>
+</div>
+<h2>Reset account</h2>
+<form method="post" action="{% url 'manage_reset' target.pk %}" onsubmit="return confirm('Reset this account? All coins and history charts will be cleared and the welcome bonus is given again.')">{% csrf_token %}
+  <p class="muted">Clears every coin balance and gives the 20 USDT welcome bonus again.</p>
+  <button class="btn danger" type="submit">Reset account</button>
+</form>
+<h2>Recent activity</h2>
+<p class="muted">Every balance update you make is recorded here and appears in the user's Activity page. <a href="{% url 'manage_user_history' target.pk %}">View full transaction history</a></p>
+<div class="table-wrap"><table>
+  <tr><th>When</th><th>Type</th><th>Coin</th><th class="n">Quantity</th><th>Note</th></tr>
+  {% for t in txns %}
+  <tr><td>{{ t.created_at|date:"M d, H:i" }}</td><td>{{ t.label }}</td><td>{{ t.coin.symbol|default:"" }}</td><td class="n">{% if t.coin and t.quantity %}{{ t.quantity|qty }}{% endif %}</td><td class="muted">{{ t.note }}</td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">No activity.</td></tr>
+  {% endfor %}
+</table></div>
+<h2>Audit log for this user</h2>
+<div class="table-wrap"><table>
+  <tr><th>When</th><th>Admin</th><th>Action</th><th class="n">Before</th><th class="n">After</th><th>Reason</th></tr>
+  {% for a in audit %}
+  <tr><td>{{ a.created_at|date:"M d, H:i" }}</td><td>{{ a.admin.username|default:"deleted" }}</td><td>{{ a.action }}</td>
+    <td class="n">{% if a.coin %}{{ a.old_qty|qty }} {{ a.coin.symbol }}{% else %}-{% endif %}</td>
+    <td class="n">{% if a.coin %}{{ a.new_qty|qty }} {{ a.coin.symbol }}{% else %}-{% endif %}</td><td class="muted">{{ a.note }}</td></tr>
+  {% empty %}<tr><td colspan="6" class="muted">No admin changes yet.</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

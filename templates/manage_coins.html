@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}Coins · Admin panel{% endblock %}
+{% block content %}
+<p><a href="{% url 'manage_home' %}">Back to admin panel</a></p>
+<h1>Manage coins</h1>
+<form method="post">{% csrf_token %}<button class="btn alt" type="submit" name="refresh" value="1">Refresh prices now</button></form>
+<h2>Listed coins</h2>
+<div class="table-wrap"><table>
+  <tr><th>Symbol</th><th>Name</th><th class="n">Price</th><th>Status</th><th></th></tr>
+  {% for c in coins %}
+  <tr><td><strong>{{ c.symbol }}</strong></td><td>{{ c.name }}</td><td class="n">{{ c.price_usd|price }}</td><td>{% if c.is_active %}Listed{% else %}Hidden{% endif %}</td>
+    <td><form method="post" action="{% url 'manage_coin_toggle' c.pk %}" style="margin:0">{% csrf_token %}<button class="btn alt" type="submit">{% if c.is_active %}Hide{% else %}List{% endif %}</button></form></td></tr>
+  {% empty %}<tr><td colspan="5" class="muted">No coins yet.</td></tr>
+  {% endfor %}
+</table></div>
+<h2>Add a coin</h2>
+<div class="panel">
+<form method="post">{% csrf_token %}
+  {% for field in form %}
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}
+    {% if field.help_text %}<div class="helptext">{{ field.help_text }}</div>{% endif %}{{ field.errors }}
+  {% endfor %}
+  <p><button class="btn" type="submit">Add coin</button></p>
+</form>
+</div>
+{% endblock %}

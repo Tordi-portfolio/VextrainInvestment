@@ -1,0 +1,104 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}Market · VextrainInvestment{% endblock %}
+{% block content %}
+<h1>Market</h1>
+<p class="mu">{% if live %}Prices are from CoinGecko and refresh about once a minute.{% else %}Live prices are unavailable right now, so the last known prices are shown.{% endif %}</p>
+{% if coins %}
+<div class="list">
+  <div class="arow head"><span>Asset</span><span class="r">Price</span><span class="r hide-s">24h</span><span class="hide-s">7 days</span><span></span></div>
+  {% for c in coins %}
+  <a class="arow" href="{% url 'coin' c.symbol %}">
+    <span class="nm"><span class="ci" style="--c:{{ c.symbol|coin_color }}">{{ c.symbol }}</span><span><strong>{{ c.name }}</strong><br><span class="mu sm">{{ c.symbol }}</span></span></span>
+    <span class="r"><strong>{{ c.price_usd|price }}</strong></span>
+    <span class="r hide-s {{ c.change_24h|tone }}">{{ c.change_24h|pct }}</span>
+    <span class="hide-s">{{ c|sparkline }}</span>
+    <span class="r">Trade</span>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<p class="mu"></p>
+{% endif %}
+
+<!-- Crypto addresses -->
+<style>
+  .wallets { margin-top: 2rem; }
+  .wallet {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap;
+    padding: .85rem 1rem; margin-top: .6rem;
+    border: 1px solid rgba(128,128,128,.3); border-radius: 10px;
+  }
+  .wallet-info { min-width: 0; flex: 1 1 260px; }
+  .wallet-label { font-weight: 600; }
+  .wallet-net { font-size: .8rem; opacity: .7; margin-left: .4rem; }
+  .wallet-addr {
+    display: block; margin-top: .25rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .85rem; word-break: break-all;
+  }
+  .copy-btn {
+    cursor: pointer; padding: .45rem .9rem; border-radius: 8px;
+    border: 1px solid rgba(128,128,128,.4); background: transparent;
+    color: inherit; font: inherit; font-size: .85rem;
+  }
+  .copy-btn:hover { background: rgba(128,128,128,.15); }
+</style>
+
+<div class="wallets">
+  <h2>Deposit addresses</h2>
+  <p class="mu sm">Always send each asset on the network shown. Funds sent on the wrong network may be lost.</p>
+
+  <div class="wallet">
+    <div class="wallet-info">
+      <span class="wallet-label">Bitcoin (BTC)</span><span class="wallet-net">Bitcoin network</span>
+      <code class="wallet-addr">bc1q24yexxzyrxvdlkhtammzzeadeh6yzcy90r2zwp</code>
+    </div>
+    <button type="button" class="copy-btn" data-copy="bc1q24yexxzyrxvdlkhtammzzeadeh6yzcy90r2zwp">Copy</button>
+  </div>
+
+  <div class="wallet">
+    <div class="wallet-info">
+      <span class="wallet-label">Ethereum (ETH)</span><span class="wallet-net">ERC-20</span>
+      <code class="wallet-addr">0x1627c177Ff4c316d8e2204eD2326cB2Db34272F5</code>
+    </div>
+    <button type="button" class="copy-btn" data-copy="0x1627c177Ff4c316d8e2204eD2326cB2Db34272F5">Copy</button>
+  </div>
+
+  <div class="wallet">
+    <div class="wallet-info">
+      <span class="wallet-label">BNB (BNB)</span><span class="wallet-net">BNB Smart Chain (BEP-20)</span>
+      <code class="wallet-addr">0x1627c177Ff4c316d8e2204eD2326cB2Db34272F5</code>
+    </div>
+    <button type="button" class="copy-btn" data-copy="0x1627c177Ff4c316d8e2204eD2326cB2Db34272F5">Copy</button>
+  </div>
+
+  <div class="wallet">
+    <div class="wallet-info">
+      <span class="wallet-label">Tether (USDT)</span><span class="wallet-net">TRON (TRC-20)</span>
+      <code class="wallet-addr">THvenhsNY3FSWFYGGd4t9MDi3HWPKqKh1B</code>
+    </div>
+    <button type="button" class="copy-btn" data-copy="THvenhsNY3FSWFYGGd4t9MDi3HWPKqKh1B">Copy</button>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy');
+      var done = function () {
+        var old = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(function () { btn.textContent = old; }, 1500);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done);
+      } else {
+        var t = document.createElement('textarea');
+        t.value = text; document.body.appendChild(t); t.select();
+        document.execCommand('copy'); document.body.removeChild(t); done();
+      }
+    });
+  });
+</script>
+{% endblock %}

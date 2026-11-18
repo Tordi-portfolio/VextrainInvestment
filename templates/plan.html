@@ -1,0 +1,325 @@
+
+{% extends "base.html" %}
+
+{% block title %}Investment Plans | VextrainInvestment{% endblock %}
+
+{% block extra_css %}
+<style>
+    .plans-page {
+        width: 100%;
+        max-width: 1250px;
+        margin: 0 auto;
+    }
+
+    .plans-header {
+        margin-bottom: 30px;
+    }
+
+    .plans-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--tx);
+        margin-bottom: 10px;
+    }
+
+    .plans-header p {
+        color: var(--mu);
+        font-size: 14px;
+        line-height: 1.7;
+    }
+
+    .plan-notice {
+        background: rgba(61, 123, 255, 0.09);
+        border: 1px solid rgba(61, 123, 255, 0.25);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 30px;
+        color: var(--tx);
+        font-size: 13px;
+        line-height: 1.7;
+    }
+
+    .asset-section {
+        margin-bottom: 45px;
+    }
+
+    .asset-heading {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .asset-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 23px;
+        font-weight: 700;
+        color: #fff;
+        flex-shrink: 0;
+    }
+
+    .btc-icon {
+        background: #F7931A;
+    }
+
+    .eth-icon {
+        background: #627EEA;
+    }
+
+    .bnb-icon {
+        background: #F3BA2F;
+        color: #171717;
+    }
+
+    .asset-heading h2 {
+        color: var(--tx);
+        font-size: 20px;
+        margin: 0 0 4px;
+    }
+
+    .asset-heading p {
+        color: var(--mu);
+        font-size: 12px;
+        margin: 0;
+    }
+
+    .plans-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .plan-card {
+        background: var(--s1);
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        padding: 22px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .plan-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--ac);
+    }
+
+    .plan-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .plan-label {
+        color: var(--mu);
+        font-size: 12px;
+    }
+
+    .plan-duration {
+        background: rgba(61, 123, 255, 0.12);
+        color: var(--ac);
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .plan-amount {
+        color: var(--tx);
+        font-size: 27px;
+        font-weight: 700;
+        margin-bottom: 18px;
+        overflow-wrap: anywhere;
+    }
+
+    .plan-divider {
+        height: 1px;
+        background: var(--line);
+        margin: 16px 0;
+    }
+
+    .plan-detail {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 13px;
+        font-size: 13px;
+    }
+
+    .plan-detail span:first-child {
+        color: var(--mu);
+    }
+
+    .plan-detail span:last-child {
+        color: var(--tx);
+        font-weight: 600;
+        text-align: right;
+    }
+
+    .plan-detail .gain {
+        color: var(--gain) !important;
+    }
+
+    .plan-total {
+        background: var(--s2);
+        border-radius: 10px;
+        padding: 14px;
+        margin-top: 17px;
+    }
+
+    .plan-total span {
+        display: block;
+        color: var(--mu);
+        font-size: 11px;
+        margin-bottom: 7px;
+    }
+
+    .plan-total strong {
+        display: block;
+        color: var(--gain);
+        font-size: 21px;
+        overflow-wrap: anywhere;
+    }
+
+    .plan-disclaimer {
+        margin-top: 30px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        background: var(--s1);
+        border-radius: 12px;
+        color: var(--mu);
+        font-size: 12px;
+        line-height: 1.8;
+    }
+
+    @media (max-width: 1000px) {
+        .plans-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 600px) {
+        .plans-header h1 {
+            font-size: 23px;
+        }
+
+        .plans-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .plan-card {
+            padding: 19px;
+        }
+
+        .plan-amount {
+            font-size: 25px;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="plans-page">
+
+    <div class="plans-header">
+        <h1>Investment Plans</h1>
+        <p>
+            Explore the available cryptocurrency plan examples
+            and their illustrative seven-day projections.
+        </p>
+    </div>
+
+    {% for asset in plans %}
+    <section class="asset-section">
+
+        <div class="asset-heading">
+            <div class="asset-icon {{ asset.css }}">
+                {{ asset.icon }}
+            </div>
+
+            <div>
+                <h2>{{ asset.name }}</h2>
+                <p>{{ asset.symbol }} Investment Plans</p>
+            </div>
+        </div>
+
+
+        <div class="plans-grid">
+
+            {% for item in asset.plans %}
+            <div class="plan-card">
+
+                <div class="plan-top">
+                    <span class="plan-label">
+                        {{ asset.symbol }} Plan
+                    </span>
+
+                    <span class="plan-duration">
+                        7 Days
+                    </span>
+                </div>
+
+
+                <div class="plan-label">
+                    Illustrative Amount
+                </div>
+
+                <div class="plan-amount">
+                    ${{ item.amount|floatformat:0 }}
+                </div>
+
+
+                <div class="plan-divider"></div>
+
+
+                <div class="plan-detail">
+                    <span>Duration</span>
+                    <span>7 Days</span>
+                </div>
+
+
+                <div class="plan-detail">
+                    <span>Illustrative Change</span>
+                    <span>50%</span>
+                </div>
+
+
+                <div class="plan-detail">
+                    <span>Illustrative Gain</span>
+                    <span class="gain">
+                        ${{ item.gain|floatformat:0 }}
+                    </span>
+                </div>
+
+
+                <div class="plan-total">
+                    <span>Illustrative Total Value</span>
+                    <strong>
+                        ${{ item.total|floatformat:0 }}
+                    </strong>
+                </div>
+
+            </div>
+            {% endfor %}
+
+        </div>
+    </section>
+    {% empty %}
+
+    <div class="plan-notice">
+        No investment plans are currently available.
+    </div>
+
+    {% endfor %}
+</div>
+{% endblock %}

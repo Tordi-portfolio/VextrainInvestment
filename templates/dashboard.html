@@ -1,0 +1,61 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}Wallet · VextrainInvestment{% endblock %}
+{% block content %}
+<h1>Wallet</h1>
+<div class="hero">
+  <div>
+    <div class="mu">Total balance</div>
+    <div class="big">{{ p.total|money }}</div>
+    <p style="margin-top:8px"><span class="chip {{ p.pl|tone }}">{{ p.pl|money }} profit or loss</span>
+       <span class="mu sm">&nbsp;BTC, ETH, BNB and USDT combined</span></p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="btn" href="{% url 'market' %}">Buy or Sell or Deposite</a>
+    <a class="btn alt" href="{% url 'convert' %}">Convert</a>
+    <a class="btn alt" href="{% url 'withdraw' %}">Withdraw</a>
+  </div>
+</div>
+
+<div class="card">
+  <strong>Where your balance sits</strong>
+  {% if alloc %}
+  <div class="alloc">{% for a in alloc %}<span style="width:{{ a.pct|stringformat:'.2f' }}%;background:{{ a.color }}" title="{{ a.label }}"></span>{% endfor %}</div>
+  <div class="legend">{% for a in alloc %}<span><i style="background:{{ a.color }}"></i>{{ a.label }} {{ a.pct|stringformat:".1f" }}%</span>{% endfor %}</div>
+  {% else %}<p class="mu" style="margin-top:8px">Your wallet is empty. Ask an admin to credit your balance.</p>{% endif %}
+</div>
+
+<h2>Assets</h2>
+<div class="list">
+  <div class="arow head"><span>Asset</span><span class="r">Balance</span><span class="r hide-s">24h</span><span class="hide-s">7 days</span><span></span></div>
+  {% for a in assets %}
+  <a class="arow" href="{% url 'coin' a.coin.symbol %}">
+    <span class="nm"><span class="ci" style="--c:{{ a.coin.symbol|coin_color }}">{{ a.coin.symbol }}</span><span><strong>{{ a.coin.name }}</strong><br><span class="mu sm">{{ a.coin.price_usd|price }}</span></span></span>
+    <span class="r"><strong>{{ a.value|money }}</strong><br><span class="mu sm">{{ a.quantity|qty }} {{ a.coin.symbol }}</span></span>
+    <span class="r hide-s {{ a.coin.change_24h|tone }}">{{ a.coin.change_24h|pct }}</span>
+    <span class="hide-s">{{ a.coin|sparkline }}</span>
+    <span class="r">Trade</span>
+  </a>
+  {% empty %}<div class="arow"><span class="mu">No assets are listed yet.</span></div>
+  {% endfor %}
+</div>
+
+<h2>Portfolio value over time</h2>
+<div class="card"><div style="height:260px"><canvas id="c"></canvas></div></div>
+{{ chart|json_script:"chart-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const d = JSON.parse(document.getElementById('chart-data').textContent);
+const el = document.getElementById('c');
+if (d.values.length > 1 && window.Chart) {
+  const g = el.getContext('2d').createLinearGradient(0, 0, 0, 260);
+  g.addColorStop(0, 'rgba(61,123,255,.35)'); g.addColorStop(1, 'rgba(61,123,255,0)');
+  new Chart(el, {type:'line', data:{labels:d.labels, datasets:[{data:d.values, borderColor:'#3D7BFF', backgroundColor:g, fill:true, tension:.25, pointRadius:0}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#8C97B2',maxTicksLimit:6},grid:{display:false}}, y:{ticks:{color:'#8C97B2',callback:v=>'$'+v.toLocaleString()},grid:{color:'#26304A'}}}}});
+} else {
+  el.replaceWith(Object.assign(document.createElement('p'), {className:'mu', textContent:'Your value history appears here after a few visits and trades.'}));
+}
+</script>
+{% endblock %}

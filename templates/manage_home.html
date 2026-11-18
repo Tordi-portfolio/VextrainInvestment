@@ -1,0 +1,36 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}Admin panel · VextrainInvestment{% endblock %}
+{% block content %}
+<h1>Admin panel</h1>
+<p><a class="btn" href="{% url 'manage_withdrawals' %}">Withdrawals{% if pending %} ({{ pending }} pending){% endif %}</a> <a class="btn alt" href="{% url 'manage_coins' %}">Manage coins</a> <a class="btn alt" href="{% url 'admin:index' %}">Django admin</a></p>
+<div class="strip">
+  <div><div class="v">{{ user_count }}</div><div class="l">Registered users</div></div>
+  <div><div class="v">{{ active_users }}</div><div class="l">Active in the last {{ active_days }} days</div></div>
+  <div><div class="v">{{ pending }}</div><div class="l">Withdrawals awaiting a decision</div></div>
+</div>
+<h2>Users ({{ user_count }})</h2>
+<form method="get"><input type="text" name="q" value="{{ q }}" placeholder="Search username" aria-label="Search username" style="max-width:260px"> <button class="btn" type="submit">Search</button></form>
+<p></p>
+<div class="table-wrap"><table>
+  <tr><th>User</th><th>Joined</th>{% for c in coins %}<th class="n">{{ c.symbol }}</th>{% endfor %}<th class="n">Total balance</th><th></th></tr>
+  {% for u, p, bal in rows %}
+  <tr><td>{{ u.username }}{% if u.is_staff %} <span class="muted">(staff)</span>{% endif %}</td><td>{{ u.date_joined|date:"M d, Y" }}</td>
+    {% for c in coins %}<td class="n">{{ bal|get:c.symbol|qty }}</td>{% endfor %}
+    <td class="n">{{ p.total|money }}</td>
+    <td><a href="{% url 'manage_user' u.pk %}">Edit balances</a></td></tr>
+  {% empty %}<tr><td colspan="9" class="muted">No users match.</td></tr>
+  {% endfor %}
+</table></div>
+<p>{% if page.has_previous %}<a href="?q={{ q }}&page={{ page.previous_page_number }}">Previous</a>{% endif %}
+   {% if page.has_next %} <a href="?q={{ q }}&page={{ page.next_page_number }}">Next</a>{% endif %}</p>
+<h2>Recent balance changes</h2>
+<div class="table-wrap"><table>
+  <tr><th>When</th><th>Admin</th><th>User</th><th>Action</th><th class="n">Before</th><th class="n">After</th><th>Reason</th></tr>
+  {% for a in audit %}
+  <tr><td>{{ a.created_at|date:"M d, H:i" }}</td><td>{{ a.admin.username|default:"deleted" }}</td><td>{{ a.target.username }}</td><td>{{ a.action }}</td>
+    <td class="n">{% if a.coin %}{{ a.old_qty|qty }} {{ a.coin.symbol }}{% else %}-{% endif %}</td>
+    <td class="n">{% if a.coin %}{{ a.new_qty|qty }} {{ a.coin.symbol }}{% else %}-{% endif %}</td><td class="muted">{{ a.note }}</td></tr>
+  {% empty %}<tr><td colspan="7" class="muted">No changes yet.</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}

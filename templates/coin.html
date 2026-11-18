@@ -1,0 +1,109 @@
+{% extends "base.html" %}{% load vex %}
+{% block title %}{{ coin.symbol }} · VextrainInvestment{% endblock %}
+{% block content %}
+<p class="mu" style="margin-top:18px"><a href="{% url 'market' %}">Market</a> / {{ coin.symbol }}</p>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+  <div class="nm"><span class="ci" style="--c:{{ coin.symbol|coin_color }}">{{ coin.symbol }}</span><h1 style="margin:0">{{ coin.name }}</h1></div>
+  <div class="r"><div class="big">{{ coin.price_usd|price }}</div><span class="chip {{ coin.change_24h|tone }}">{{ coin.change_24h|pct }} in 24h</span></div>
+</div>
+<div class="grid2">
+  <div>
+    <div class="card">
+      <div class="tabs" id="ranges"><button data-n="24">1D</button><button data-n="168" class="on">7D</button><button data-n="0">30D</button></div>
+      <div id="chartbox" style="height:320px"><canvas id="pc"></canvas></div>
+      <p id="nochart" class="mu" hidden>The price chart isn't available right now. It loads from CoinGecko when the app is online.</p>
+    </div>
+    <div class="card">
+      <strong>Your {{ coin.symbol }}</strong>
+      {% if held %}
+      <div class="strip" style="border:0;margin:8px 0 0">
+        <div><div class="v">{{ held.quantity|qty }}</div><div class="l">Balance</div></div>
+        <div><div class="v">{{ held.value|money }}</div><div class="l">Value now</div></div>
+        <div><div class="v {{ held.pl|tone }}">{{ held.pl|money }}</div><div class="l">Profit or loss</div></div>
+      </div>
+      <p style="margin-top:12px"><a href="{% url 'convert' %}?from={{ coin.symbol }}">Convert {{ coin.symbol }}</a> · <a href="{% url 'withdraw' %}?coin={{ coin.symbol }}">Withdraw {{ coin.symbol }}</a></p>
+      {% else %}<p class="mu" style="margin:8px 0 0">You don't hold any {{ coin.symbol }} yet.</p>{% endif %}
+    </div>
+  </div>
+
+  {% if is_base %}
+  <div class="card">
+    <strong>USDT is your base currency</strong>
+    <p class="mu sm" style="margin-top:8px">You buy other coins with USDT and get USDT back when you sell. To swap USDT for a coin, use <a href="{% url 'convert' %}">Convert</a> or open that coin's page and press Buy.</p>
+    <p style="margin-bottom:0"><a class="btn block" href="{% url 'withdraw' %}?coin=USDT">Withdraw USDT</a></p>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="tabs" id="mode"><button data-m="buy" class="on">Buy</button><button data-m="sell">Sell</button></div>
+    <form id="buyf" method="post" action="{% url 'buy' coin.symbol %}">{% csrf_token %}
+      <div class="sm mu">USDT available: <strong style="color:var(--tx)">{{ usdt_balance|qty }} USDT</strong></div>
+      <label for="buy-amt">Amount to spend (USDT)</label>
+      <input id="buy-amt" name="amount" type="number" step="any" min="0.00000001" required placeholder="0.00">
+      <div class="chips" data-for="buy-amt" data-base="usdt"><button type="button" data-p="0.25">25%</button><button type="button" data-p="0.5">50%</button><button type="button" data-p="0.75">75%</button><button type="button" data-p="1">Max</button></div>
+      <div class="est"><div><span class="mu">You receive about</span><strong id="buy-est">0 {{ coin.symbol }}</strong></div></div>
+      <button class="btn buy block" type="submit">Buy {{ coin.symbol }}</button>
+    </form>
+    <form id="sellf" method="post" action="{% url 'sell' coin.symbol %}" hidden>{% csrf_token %}
+      <div class="sm mu">Available: <strong style="color:var(--tx)">{% if held %}{{ held.quantity|qty }}{% else %}0{% endif %} {{ coin.symbol }}</strong></div>
+      <label for="sell-qty">Quantity of {{ coin.symbol }}</label>
+      <input id="sell-qty" name="amount" type="number" step="any" min="0.00000001" placeholder="0.00">
+      <div class="chips" data-for="sell-qty" data-base="qty"><button type="button" data-p="0.25">25%</button><button type="button" data-p="0.5">50%</button><button type="button" data-p="0.75">75%</button></div>
+      <div class="est"><div><span class="mu">You receive about</span><strong id="sell-est">0 USDT</strong></div></div>
+      <button class="btn sellb block" type="submit">Sell this quantity</button>
+      <button class="btn alt block" type="submit" name="sell_all" value="on" style="margin-top:8px">Sell everything</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{{ data|json_script:"coin-data" }}
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+const D = JSON.parse(document.getElementById('coin-data').textContent);
+const fmt = (n, dp) => n.toLocaleString(undefined, {maximumFractionDigits: dp});
+// ---- trade panel (not shown on the USDT page) ----
+const buyAmt = document.getElementById('buy-amt'), sellQty = document.getElementById('sell-qty');
+if (buyAmt) {
+  document.querySelectorAll('#mode button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x === b));
+    document.getElementById('buyf').hidden = b.dataset.m !== 'buy';
+    document.getElementById('sellf').hidden = b.dataset.m !== 'sell';
+  });
+  buyAmt.oninput = () => document.getElementById('buy-est').textContent = fmt((+buyAmt.value || 0) * D.usdt_price / D.price, 8) + ' ' + D.symbol;
+  sellQty.oninput = () => document.getElementById('sell-est').textContent = fmt((+sellQty.value || 0) * D.price / D.usdt_price, 6) + ' USDT';
+  document.querySelectorAll('.chips').forEach(box => box.querySelectorAll('button').forEach(b => b.onclick = () => {
+    const input = document.getElementById(box.dataset.for), base = box.dataset.base === 'usdt' ? D.usdt : D.qty;
+    input.value = (Math.floor(base * +b.dataset.p * 1e8) / 1e8).toString();
+    input.oninput();
+  }));
+}
+// ---- price chart ----
+const canvas = document.getElementById('pc');
+let chart = null;
+function draw(n) {
+  const pts = n ? D.chart.slice(-n) : D.chart;
+  const color = pts[pts.length - 1][1] >= pts[0][1] ? '#2EC27E' : '#F0616D';
+  const g = canvas.getContext('2d').createLinearGradient(0, 0, 0, 320);
+  g.addColorStop(0, color + '44'); g.addColorStop(1, color + '00');
+  const data = {labels: pts.map(p => new Date(p[0]).toLocaleString(undefined, n === 24 ? {hour: '2-digit', minute: '2-digit'} : {month: 'short', day: 'numeric', hour: '2-digit'})),
+    datasets: [{data: pts.map(p => p[1]), borderColor: color, backgroundColor: g, fill: true, tension: .2, pointRadius: 0, borderWidth: 2}]};
+  if (chart) { chart.data = data; chart.update(); return; }
+  chart = new Chart(canvas, {type: 'line', data, options: {maintainAspectRatio: false, interaction: {intersect: false, mode: 'index'},
+    plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => '$' + fmt(c.parsed.y, c.parsed.y < 1 ? 6 : 2)}}},
+    scales: {x: {ticks: {color: '#8C97B2', maxTicksLimit: 6, maxRotation: 0}, grid: {display: false}},
+             y: {ticks: {color: '#8C97B2', callback: v => '$' + fmt(v, v < 1 ? 4 : 2)}, grid: {color: '#26304A'}}}}});
+}
+if (D.chart.length > 1 && window.Chart) {
+  draw(168);
+  document.querySelectorAll('#ranges button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#ranges button').forEach(x => x.classList.toggle('on', x === b));
+    draw(+b.dataset.n);
+  });
+} else {
+  document.getElementById('chartbox').hidden = true;
+  document.getElementById('ranges').hidden = true;
+  document.getElementById('nochart').hidden = false;
+}
+</script>
+{% endblock %}
